@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SoilSense: Plateforme IoT de surveillance en temps réel de la qualité des sols pour l'agriculture, utilisant des capteurs ESP32. Monitorisez l'humidité et la qualité de l'air avec des prédictions alimentées par l'IA.">
+  <meta name="keywords" content="agriculture, IoT, capteurs ESP32, surveillance sol, humidité, qualité air, prédictions IA, Supabase">
+  <meta name="author" content="JEDLI Mohamed Amine">
+  <meta property="og:title" content="SoilSense - Plateforme de Suivi des Capteurs ESP32">
+  <meta property="og:description" content="Surveillez la qualité des sols en temps réel avec des capteurs ESP32 et des prédictions IA. Optimisez l'irrigation et améliorez les rendements agricoles.">
+  <meta property="og:image" content="https://via.placeholder.com/1200x400?text=Agriculture+IoT">
+  <meta property="og:url" content="https://projet-pfe-7a49f.web.app">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SoilSense - Plateforme de Suivi des Capteurs ESP32">
+  <meta name="twitter:description" content="Surveillez la qualité des sols en temps réel avec des capteurs ESP32 et des prédictions IA.">
+  <meta name="twitter:image" content="https://via.placeholder.com/1200x400?text=Agriculture+IoT">
+  <title>SoilSense - Plateforme de Suivi des Capteurs ESP32</title>
+  <link rel="icon" type="image/png" href="https://via.placeholder.com/32?text=SS" sizes="32x32">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1 {
+      font-size: 2rem;
+      margin: 1rem 0;
+    }
+    .predictions-list {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .predictions-list h4 {
+      margin-bottom: 0.5rem;
+    }
+    .predictions-list ul {
+      list-style: none;
+    }
+    .predictions-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
+    .weather-info {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 5px;
+    }
+    .ai-pump-control {
+      margin-top: 1rem;
+    }
+    .ai-decision {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #e8f4ff;
+      border-radius: 5px;
+    }
+    .chart-container {
+      margin: 2rem 0;
+      padding: 1rem;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .chart-container canvas {
+      max-height: 300px;
+      width: 100%;
+    }
+    .no-js-message, #page-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      text-align: center;
+      padding: 20px;
+    }
+    #page-loading {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .latency-chart-section {
+      margin-top: 2rem;
+    }
+    .latency-chart-section h3 {
+      margin-bottom: 1rem;
+    }
+    /* Chat Styles */
+    #chat-container {
+      width: 300px;
+      border: 1px solid #ccc;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #fff;
+      display: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      border-radius: 5px;
+    }
+    #chat-messages {
+      height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .chat-message {
+      margin: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .user-message {
+      background: #e0e0e0;
+      text-align: right;
+    }
+    .bot-message {
+      background: #d1e7dd;
+    }
+    #chat-input-container {
+      display: flex;
+      padding: 5px;
+    }
+    #chat-input {
+      width: 70%;
+      padding: 5px;
+      margin-right: 5px;
+    }
+    #send-message, #voice-input {
+      padding: 5px 10px;
+      margin: 0 2px;
+    }
+    #chat-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 330px;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    @media (max-width: 600px) {
+      #chat-container {
+        width: 90%;
+        right: 5%;
+      }
+      #chat-toggle {
+        right: 5%;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <noscript>
+    <div class="no-js-message" role="alert">
+      <h1>JavaScript est désactivé</h1>
+      <p>SoilSense nécessite JavaScript pour fonctionner. Veuillez activer JavaScript dans les paramètres de votre navigateur pour utiliser cette application.</p>
+    </div>
+  </noscript>
+  <div id="page-loading" role="status" aria-live="polite">Chargement...</div>
+  <div class="sidebar" role="navigation">
+    <div class="logo">
+      <i class="fas fa-microchip" aria-hidden="true"></i>
+      <h2>SoilSense</h2>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="#dashboard" class="active" aria-current="page"><i class="fas fa-tachometer-alt" aria-hidden="true"></i> <span>Tableau de Bord</span></a></li>
+        <li><a href="#history"><i class="fas fa-history" aria-hidden="true"></i> <span>Historique</span></a></li>
+        <li><a href="#pump-history"><i class="fas fa-water" aria-hidden="true"></i> <span>Historique Pompe</span></a></li>
+        <li><a href="#about"><i class="fas fa-info-circle" aria-hidden="true"></i> <span>À Propos</span></a></li>
+        <li><button id="signOutButton" class="action-button sidebar-button" aria-label="Se déconnecter"><i class="fas fa-sign-out-alt" aria-hidden="true"></i> <span>Déconnexion</span></button></li>
+      </ul>
+    </nav>
+    <div class="live-indicator" role="status" aria-live="polite">
+      <span class="live-dot"></span>
+      <span class="live-text">Live</span>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Basculer entre le thème clair et sombre">
+      <i class="fas fa-sun" aria-hidden="true"></i> <span>Basculer le Thème</span>
+    </button>
+  </div>
+  <div class="main-content">
+    <div class="container">
+      <div class="hero-section">
+        <img src="https://via.placeholder.com/1200x400?text=Agriculture+IoT" alt="Illustration d'une solution IoT pour l'agriculture" id="hero-image" loading="lazy">
+        <div class="hero-overlay">
+          <h1>Révolutionner l'Agriculture avec l'IoT</h1>
+          <p>Surveillez la qualité des sols en temps réel avec des capteurs avancés</p>
+        </div>
+      </div>
+      <section id="dashboard" class="content-section active" lang="fr">
+        <div class="dashboard-content">
+          <div class="location-settings">
+            <h3>Définir la Localisation</h3>
+            <div class="location-input-wrapper">
+              <input type="text" id="cityInput" placeholder="Entrez une ville (ex. Mateur)" value="" aria-label="Entrez le nom de la ville pour les données météo">
+              <button id="setCity" class="action-button" aria-label="Définir la ville pour les données météo">Définir</button>
+            </div>
+            <div class="weather-info" id="weatherInfo" aria-live="polite">
+              <p>Entrez une ville pour voir les données météo.</p>
+            </div>
+          </div>
+          <div class="animation-toggle">
+            <label for="particle-toggle"><input type="checkbox" id="particle-toggle" checked aria-label="Activer ou désactiver les animations de particules"> Activer les particules</label>
+          </div>
+          <div class="cards" role="region" aria-label="Données des capteurs en temps réel">
+            <div class="card">
+              <h2><i class="fas fa-tint" aria-hidden="true"></i> Humidité du Sol</h2>
+              <p id="moistureValue" aria-live="polite">Chargement...</p>
+            </div>
+            <div class="card">
+              <h2><i class="fas fa-wind" aria-hidden="true"></i> MQ-135 (Qualité Air)</h2>
+              <p id="mq135Value" aria-live="polite">Chargement...</p>
+            </div>
+            <div class="card">
+              <h2><i class="fas fa-fire" aria-hidden="true"></i> MQ-9 (CO/Gaz)</h2>
+              <p id="mq9Value" aria-live="polite">Chargement...</p>
+            </div>
+            <div class="card">
+              <h2><i class="fas fa-flask" aria-hidden="true"></i> MQ-8 (H2)</h2>
+              <p id="mq8Value" aria-live="polite">Chargement...</p>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Données des Capteurs (Historique)</h3>
+            <canvas id="combinedChart" aria-label="Graphique des données historiques des capteurs"></canvas>
+          </div>
+          <div class="latency-chart-section">
+            <h3>Latence de Synchronisation avec Supabase</h3>
+            <div class="chart-container">
+              <canvas id="latencyChart" aria-label="Graphique de la latence de synchronisation avec Supabase"></canvas>
+            </div>
+          </div>
+          <div class="recommendations" role="region" aria-label="Recommandations basées sur l'IA">
+            <h2><i class="fas fa-lightbulb" aria-hidden="true"></i> Recommandations <span class="ai-badge">Alimenté par IA</span></h2>
+            <p id="recommendationText" aria-live="polite"><span class="spinner"></span> Chargement des recommandations...</p>
+          </div>
+          <div class="predictions loading" role="region" aria-label="Prédictions d'humidité basées sur l'IA">
+            <h2><i class="fas fa-chart-line" aria-hidden="true"></i> Prédictions sur 24 Heures <span class="ai-badge">Alimenté par IA</span></h2>
+            <p id="predictionText" aria-live="polite"><span class="spinner"></span> Chargement de la prédiction...</p>
+            <div class="chart-container">
+              <h3>Prévisions d'Humidité (24 Heures)</h3>
+              <canvas id="predictionChart" aria-label="Graphique des prévisions d'humidité sur 24 heures"></canvas>
+            </div>
+            <div class="predictions-list" id="predictionsList">
+              <h4>Prévisions horaires d'humidité du sol :</h4>
+              <ul id="predictionListItems"></ul>
+            </div>
+          </div>
+          <div class="pump-control" role="region" aria-label="Contrôle de la pompe">
+            <h3>Contrôle de la Pompe</h3>
+            <button id="togglePump" class="action-button" aria-label="Activer ou désactiver la pompe">Activer la Pompe</button>
+            <p id="pumpStatus">État de la Pompe: <span id="pumpState" aria-live="polite">Inconnu</span></p>
+            <div class="ai-pump-control">
+              <label for="aiPumpToggle"><input type="checkbox" id="aiPumpToggle" aria-label="Activer ou désactiver le contrôle de la pompe par l'IA"> Activer le contrôle par IA</label>
+              <div class="ai-decision" id="aiPumpDecision" aria-live="polite">
+                <p>Contrôle par IA: Inactif</p>
+              </div>
+            </div>
+          </div>
+          <div class="pump-settings">
+            <h3>Paramètres de la Pompe</h3>
+            <label for="moistureThreshold">Seuil d'Humidité (%) :</label>
+            <input type="number" id="moistureThreshold" value="20" min="0" max="100" aria-label="Définir le seuil d'humidité pour l'activation de la pompe, de 0 à 100 pour cent">
+            <label for="pumpDuration">Durée d'Arrosage (secondes) :</label>
+            <input type="number" id="pumpDuration" value="10" min="1" aria-label="Définir la durée d'arrosage en secondes">
+          </div>
+        </div>
+      </section>
+      <section id="history" class="content-section" lang="fr">
+        <header>
+          <h1 class="typing-effect">Historique des Données</h1>
+        </header>
+        <div class="history-actions">
+          <button id="download-report" class="action-button" aria-label="Télécharger le rapport des données historiques au format CSV">Télécharger le Rapport (CSV)</button>
+        </div>
+        <table aria-label="Tableau de l'historique des données des capteurs">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Humidité (%)</th>
+              <th scope="col">MQ-135</th>
+              <th scope="col">MQ-9</th>
+              <th scope="col">MQ-8</th>
+            </tr>
+          </thead>
+          <tbody id="dataHistoryBody"></tbody>
+        </table>
+      </section>
+      <section id="pump-history" class="content-section" lang="fr">
+        <header>
+          <h1 class="typing-effect">Historique de la Pompe</h1>
+        </header>
+        <table aria-label="Tableau de l'historique des activations de la pompe">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">État</th>
+              <th scope="col">Durée (ms)</th>
+              <th scope="col">Source</th>
+            </tr>
+          </thead>
+          <tbody id="pumpHistoryBody"></tbody>
+        </table>
+      </section>
+      <section id="about" class="content-section" lang="fr">
+        <header>
+          <h1 class="typing-effect">À Propos</h1>
+        </header>
+        <div class="about-content">
+          <div class="about-text">
+            <h2>Notre Projet</h2>
+            <p>
+              SoilSense est une plateforme de pointe développée dans le cadre d’un projet de fin d’études, visant à révolutionner la gestion agricole grâce à une surveillance en temps réel de la qualité des sols. Né d’une passion pour la technologie et l’innovation, ce projet a débuté avec le défi de concevoir un système fiable pour les agriculteurs. J’ai surmonté des obstacles comme l’optimisation des capteurs ESP32 sous des conditions variables et la synchronisation des données en temps réel via Supabase. L’objectif est d’autonomiser les agriculteurs avec des données précises sur l’humidité du sol et la qualité de l’air, optimisant l’irrigation, réduisant l’impact environnemental, et améliorant les rendements. Cette solution utilise des microcontrôleurs ESP32 avec des capteurs avancés (humidité, MQ-135, MQ-9, MQ-8), offrant des graphiques interactifs et des alertes en temps réel.
+            </p>
+            <h2>Chronologie du Projet</h2>
+            <div class="timeline">
+              <div class="timeline-item">Mois 1 : Conception du concept</div>
+              <div class="timeline-item">Mois 2 : Développement des capteurs</div>
+              <div class="timeline-item">Mois 3 : Intégration avec Supabase</div>
+              <div class="timeline-item">Mois 4 : Design de l’interface</div>
+            </div>
+            <h2>Équipe et Crédits</h2>
+            <p>
+              Ce projet a été réalisé par JEDLI Mohamed Amine, étudiant en 3ème année Licence Technologie de l'Information et Communication, sous la supervision de Docteur KHMIRI Khiareddine, dans le cadre d’un projet de fin d’études à l’Institut Supérieur de Sciences Appliquées et de Technologie de Mateur. Ce travail est entièrement auto-réalisé, reflétant un engagement et une détermination à relever les défis techniques et scientifiques pour offrir une solution innovante aux agriculteurs.
+            </p>
+          </div>
+          <div class="about-visual">
+            <i class="fas fa-microchip fa-5x" aria-hidden="true"></i>
+            <p>Représentation schématique du système ESP32 et des capteurs</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer role="contentinfo">
+      <div class="footer-content">
+        <p><i class="fas fa-envelope" aria-hidden="true"></i> <a href="mailto:jedlimedamine@gmail.com" aria-label="Envoyer un email à JEDLI Mohamed Amine">jedlimedamine@gmail.com</a></p>
+        <p><i class="fas fa-phone" aria-hidden="true"></i> <a href="#contact" aria-label="Contactez-nous">Contactez-nous</a></p>
+        <p>© 2025 - Tous droits réservés</p>
+      </div>
+    </footer>
+  </div>
+  <!-- Chat Interface -->
+  <div id="chat-container">
+    <div id="chat-messages"></div>
+    <div id="chat-input-container">
+      <input type="text" id="chat-input" placeholder="Tapez votre message...">
+      <button id="send-message">Envoyer</button>
+      <button id="voice-input">Voice</button>
+    </div>
+  </div>
+  <button id="chat-toggle">Ouvrir Chat</button>
+  <script type="module" src="app.js"></script>
+  <script>
+    // Fallback if app.js fails to load
+    window.addEventListener('load', () => {
+      const pageLoading = document.getElementById('page-loading');
+      if (pageLoading) {
+        pageLoading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

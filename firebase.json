@@ -1,0 +1,21 @@
+{
+  "hosting": {
+    "public": "demo",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(html|css|js|png)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, no-cache, must-revalidate"
+          }
+        ]
+      }
+    ]
+  }
+}
